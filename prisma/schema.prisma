@@ -1,0 +1,390 @@
+// Prisma schema for MeirTV - migrated from WordPress
+// Generated from real WordPress database structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// SHIURIM (Torah lessons) — core content type
+// ─────────────────────────────────────────────
+model Shiur {
+  id               Int      @id @default(autoincrement())
+  wpId             Int?     @unique @map("wp_id")         // original WordPress post ID
+  slug             String   @unique
+  title            String
+  content          String?  @db.Text
+  excerpt          String?  @db.Text
+  status           String   @default("publish")           // publish | draft | private
+
+  // Video sources
+  vimeoId          String?  @map("vimeo_id")
+  vimeoThumbnail   String?  @map("vimeo_thumbnail")      @db.Text
+  youtubeId        String?  @map("youtube_id")
+  mp4Url           String?  @map("mp4_url")              @db.Text
+  mp3Url           String?  @map("mp3_url")              @db.Text
+  vttUrl           String?  @map("vtt_url")              @db.Text  // subtitles
+  transcriptionUrl String?  @map("transcription_url")   @db.Text
+
+  // Lesson metadata
+  episodeNumber    Int?     @map("episode_number")
+  lessonLength     Int?     @map("lesson_length")        // in seconds
+  videoDuration    Int?     @map("video_duration")       // in seconds
+  pdfMekorot       String?  @map("pdf_mekorot")          @db.Text  // sources PDF URL
+  hebrewDate       String?  @map("hebrew_date")
+  recordDate       DateTime? @map("record_date")
+  hidden           Boolean  @default(false)
+
+  // SEO
+  seoTitle         String?  @map("seo_title")
+  seoDescription   String?  @map("seo_description")     @db.Text
+
+  // Timestamps
+  publishedAt      DateTime? @map("published_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  rabbis           ShiurRabbi[]
+  series           ShiurSeries[]
+  tags             ShiurTag[]
+  parashas         ShiurParasha[]
+  moadim           ShiurMoadim[]
+  madars           ShiurMador[]
+  categories       ShiurCategory[]
+  thumbnail        Media?   @relation(fields: [thumbnailId], references: [id])
+  thumbnailId      Int?     @map("thumbnail_id")
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([vimeoId])
+  @@map("shiurim")
+}
+
+// ─────────────────────────────────────────────
+// RABBIS (teachers/lecturers)
+// ─────────────────────────────────────────────
+model Rabbi {
+  id          Int     @id @default(autoincrement())
+  wpTermId    Int?    @unique @map("wp_term_id")
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  picture     String? @db.Text  // URL to rabbi photo
+  bio         String? @db.Text
+
+  shiurim     ShiurRabbi[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("rabbis")
+}
+
+model ShiurRabbi {
+  shiur    Shiur  @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId  Int    @map("shiur_id")
+  rabbi    Rabbi  @relation(fields: [rabbiId], references: [id], onDelete: Cascade)
+  rabbiId  Int    @map("rabbi_id")
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  @@id([shiurId, rabbiId])
+  @@map("shiur_rabbi")
+}
+
+// ─────────────────────────────────────────────
+// SERIES (shiurim-series)
+// ─────────────────────────────────────────────
+model Series {
+  id          Int     @id @default(autoincrement())
+  wpTermId    Int?    @unique @map("wp_term_id")
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  thumbnail   String? @db.Text
+  parentId    Int?    @map("parent_id")
+  parent      Series? @relation("SeriesParent", fields: [parentId], references: [id])
+  children    Series[] @relation("SeriesParent")
+
+  shiurim     ShiurSeries[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("series")
+}
+
+model ShiurSeries {
+  shiur    Shiur  @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId  Int    @map("shiur_id")
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId Int    @map("series_id")
+
+  @@id([shiurId, seriesId])
+  @@map("shiur_series")
+}
+
+// ─────────────────────────────────────────────
+// TAGS (shiurim-tags)
+// ─────────────────────────────────────────────
+model Tag {
+  id       Int     @id @default(autoincrement())
+  wpTermId Int?    @unique @map("wp_term_id")
+  name     String
+  slug     String  @unique
+
+  shiurim  ShiurTag[]
+
+  @@map("tags")
+}
+
+model ShiurTag {
+  shiur   Shiur @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId Int   @map("shiur_id")
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId   Int   @map("tag_id")
+
+  @@id([shiurId, tagId])
+  @@map("shiur_tag")
+}
+
+// ─────────────────────────────────────────────
+// PARASHA (weekly Torah portions)
+// ─────────────────────────────────────────────
+model Parasha {
+  id          Int      @id @default(autoincrement())
+  wpTermId    Int?     @unique @map("wp_term_id")
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  parentId    Int?     @map("parent_id")
+  parent      Parasha? @relation("ParashaParent", fields: [parentId], references: [id])
+  children    Parasha[] @relation("ParashaParent")
+
+  shiurim     ShiurParasha[]
+
+  @@map("parashas")
+}
+
+model ShiurParasha {
+  shiur     Shiur   @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId   Int     @map("shiur_id")
+  parasha   Parasha @relation(fields: [parashaId], references: [id], onDelete: Cascade)
+  parashaId Int     @map("parasha_id")
+
+  @@id([shiurId, parashaId])
+  @@map("shiur_parasha")
+}
+
+// ─────────────────────────────────────────────
+// MOADIM (Jewish holidays)
+// ─────────────────────────────────────────────
+model Moed {
+  id          Int    @id @default(autoincrement())
+  wpTermId    Int?   @unique @map("wp_term_id")
+  name        String
+  slug        String @unique
+  description String? @db.Text
+  parentId    Int?   @map("parent_id")
+  parent      Moed?  @relation("MoedParent", fields: [parentId], references: [id])
+  children    Moed[] @relation("MoedParent")
+
+  shiurim     ShiurMoadim[]
+
+  @@map("moadim")
+}
+
+model ShiurMoadim {
+  shiur   Shiur @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId Int   @map("shiur_id")
+  moed    Moed  @relation(fields: [moedId], references: [id], onDelete: Cascade)
+  moedId  Int   @map("moed_id")
+
+  @@id([shiurId, moedId])
+  @@map("shiur_moadim")
+}
+
+// ─────────────────────────────────────────────
+// MADOR (department/channel — e.g. בית המדרש)
+// ─────────────────────────────────────────────
+model Mador {
+  id       Int     @id @default(autoincrement())
+  wpTermId Int?    @unique @map("wp_term_id")
+  name     String
+  slug     String  @unique
+
+  shiurim  ShiurMador[]
+
+  @@map("madorim")
+}
+
+model ShiurMador {
+  shiur   Shiur @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId Int   @map("shiur_id")
+  mador   Mador @relation(fields: [madorId], references: [id], onDelete: Cascade)
+  madorId Int   @map("mador_id")
+
+  @@id([shiurId, madorId])
+  @@map("shiur_mador")
+}
+
+// ─────────────────────────────────────────────
+// SHIURIM CATEGORY
+// ─────────────────────────────────────────────
+model Category {
+  id          Int        @id @default(autoincrement())
+  wpTermId    Int?       @unique @map("wp_term_id")
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+  parentId    Int?       @map("parent_id")
+  parent      Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryParent")
+
+  shiurim     ShiurCategory[]
+
+  @@map("categories")
+}
+
+model ShiurCategory {
+  shiur      Shiur    @relation(fields: [shiurId], references: [id], onDelete: Cascade)
+  shiurId    Int      @map("shiur_id")
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int      @map("category_id")
+
+  @@id([shiurId, categoryId])
+  @@map("shiur_category")
+}
+
+// ─────────────────────────────────────────────
+// MEDIA (images, thumbnails)
+// ─────────────────────────────────────────────
+model Media {
+  id        Int      @id @default(autoincrement())
+  wpId      Int?     @unique @map("wp_id")
+  url       String   @db.Text
+  mimeType  String?  @map("mime_type")
+  alt       String?
+  width     Int?
+  height    Int?
+  fileSize  Int?     @map("file_size")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shiurim   Shiur[]
+
+  @@map("media")
+}
+
+// ─────────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  wpId          Int?      @unique @map("wp_id")
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  name          String?
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  image         String?
+  role          UserRole  @default(SUBSCRIBER)
+  phone         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  SUBSCRIBER
+  MACHONORA
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────
+// PAGES (static content pages)
+// ─────────────────────────────────────────────
+model Page {
+  id          Int      @id @default(autoincrement())
+  wpId        Int?     @unique @map("wp_id")
+  slug        String   @unique
+  title       String
+  content     String?  @db.Text
+  status      String   @default("publish")
+  seoTitle    String?  @map("seo_title")
+  seoDesc     String?  @map("seo_desc") @db.Text
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("pages")
+}
+
+// ─────────────────────────────────────────────
+// DONATIONS / PARNASS YOM
+// ─────────────────────────────────────────────
+model Donation {
+  id            Int      @id @default(autoincrement())
+  wpId          Int?     @unique @map("wp_id")
+  orderId       Int?     @map("order_id")
+  donorName     String?  @map("donor_name")
+  targetName    String?  @map("target_name")
+  dedicationText String? @map("dedication_text") @db.Text
+  amount        Decimal? @db.Decimal(10, 2)
+  currency      String   @default("ILS")
+  status        String   @default("completed")
+  akdashaDay    DateTime? @map("akdasha_day")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("donations")
+}
