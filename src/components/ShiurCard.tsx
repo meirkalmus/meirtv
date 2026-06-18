@@ -20,7 +20,7 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
   const rabbi = shiur.rabbis[0]?.rabbi;
   const series = shiur.series[0]?.series;
   const thumbUrl = shiur.vimeoId
-    ? `https://vumbnail.com/${shiur.vimeoId}.jpg`
+    ? `/api/thumb/${shiur.vimeoId}`
     : null;
 
   return (

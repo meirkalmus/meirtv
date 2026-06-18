@@ -69,7 +69,7 @@ export async function searchShiurim(filters: ShiurFilters) {
           select: { series: { select: { name: true, slug: true } } },
         },
       },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }],
       skip,
       take: PER_PAGE,
     }),
