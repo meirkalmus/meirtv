@@ -2,23 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { searchShiurim, getFilterOptions } from "@/lib/queries";
+import { toHebrewDate } from "@/lib/hebrew-date";
 import ShiurCard from "@/components/ShiurCard";
 import SearchFilters from "@/components/SearchFilters";
 import Pagination from "@/components/Pagination";
 import type { Metadata } from "next";
-
-// Locale-independent date format DD/MM/YYYY — safe in all Node.js environments
-function formatShiurDate(date: Date): string {
-  try {
-    const d = new Date(date);
-    const day = d.getDate().toString().padStart(2, "0");
-    const month = (d.getMonth() + 1).toString().padStart(2, "0");
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return "";
-  }
-}
 
 export const metadata: Metadata = {
   title: "חיפוש שיעורים | ערוץ מאיר",
@@ -102,14 +90,14 @@ export default async function HomePage({ searchParams }: PageProps) {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {shiurim.map(shiur => {
               // Destructure out the Date object — don't pass it to the Client Component
-              const { publishedAt, ...shiurRest } = shiur;
-              const publishedAtFormatted = publishedAt
-                ? formatShiurDate(publishedAt)
-                : null;
+              const { publishedAt, hebrewDate, ...shiurRest } = shiur;
+              // Prefer stored Hebrew date; compute from publishedAt when missing
+              const hebrewDateDisplay =
+                hebrewDate || toHebrewDate(publishedAt) || null;
               return (
                 <ShiurCard
                   key={shiur.id}
-                  shiur={{ ...shiurRest, publishedAtFormatted }}
+                  shiur={{ ...shiurRest, hebrewDate: hebrewDateDisplay, publishedAtFormatted: hebrewDateDisplay }}
                 />
               );
             })}
