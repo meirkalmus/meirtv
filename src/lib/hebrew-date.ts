@@ -8,7 +8,7 @@ export function toHebrewDate(date: Date | null | undefined): string {
   if (!date) return "";
   try {
     const hdate = new HDate(new Date(date));
-    return hdate.renderGematriya("he");
+    return hdate.renderGematriya(true);
   } catch {
     return "";
   }
