@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-interface Option { id: number; name: string; }
+interface Option { id: number; name: string; count?: number; }
 
 interface SearchFiltersProps {
   rabbis: Option[];
@@ -21,18 +21,31 @@ function Select({
   name: string; label: string; options: Option[];
   value: string; onChange: (name: string, val: string) => void;
 }) {
+  const selected = options.find(o => String(o.id) === value);
+
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-gray-500 font-medium">{label}</label>
+      <label className="text-xs text-gray-500 font-medium flex items-center justify-between">
+        <span>{label}</span>
+        {selected?.count !== undefined && (
+          <span className="text-blue-600 font-semibold text-xs">{selected.count.toLocaleString()}</span>
+        )}
+      </label>
       <select
         value={value}
         onChange={e => onChange(name, e.target.value)}
         className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'left 12px center' }}
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "left 12px center",
+        }}
       >
         <option value="">הכל</option>
         {options.map(o => (
-          <option key={o.id} value={String(o.id)}>{o.name}</option>
+          <option key={o.id} value={String(o.id)}>
+            {o.name}{o.count !== undefined ? ` (${o.count.toLocaleString()})` : ""}
+          </option>
         ))}
       </select>
     </div>
@@ -56,7 +69,7 @@ export default function SearchFilters(props: SearchFiltersProps) {
   const hasFilters = ["q", "rabbiId", "seriesId", "tagId", "parashaId", "moedId", "madorId", "categoryId"].some(k => params.has(k));
 
   return (
-    <div className={`transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
+    <div className={`transition-opacity duration-150 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
       {/* Search bar */}
       <div className="relative mb-4">
         <input

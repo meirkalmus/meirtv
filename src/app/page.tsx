@@ -54,7 +54,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const [{ shiurim, total, pages, page }, filterOptions] = await Promise.all([
     searchShiurim(filters),
-    getFilterOptions(),
+    getFilterOptions(filters),        // pass current filters → faceted counts
   ]).catch((e: Error) => {
     throw new Error(`Database error: ${e.message}`);
   });

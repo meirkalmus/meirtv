@@ -84,39 +84,85 @@ export async function searchShiurim(filters: ShiurFilters) {
   };
 }
 
-export async function getFilterOptions() {
-  const [rabbis, series, parashas, moadim, madorim, categories] =
-    await Promise.all([
-      prisma.rabbi.findMany({
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.series.findMany({
-        where: { parentId: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-        take: 500,
-      }),
-      prisma.parasha.findMany({
-        where: { parentId: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.moed.findMany({
-        where: { parentId: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.mador.findMany({
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.category.findMany({
-        where: { parentId: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-    ]);
+export interface FacetOption {
+  id: number;
+  name: string;
+  count: number;
+}
+
+/**
+ * Returns filter options with shiur counts, respecting the current active filters.
+ * Each dimension excludes its own filter when counting so the selected value still
+ * appears. This implements classic "AND" faceted search.
+ */
+export async function getFilterOptions(filters: Omit<ShiurFilters, "page"> = {}) {
+  const { q, rabbiId, seriesId, parashaId, moedId, madorId, categoryId } = filters;
+
+  // Builds the parameterized WHERE clause for shiurim, excluding one dimension
+  function buildWhere(exclude: string): { sql: string; params: (string | number)[] } {
+    const conds: string[] = [`s.status = 'publish'`];
+    const params: (string | number)[] = [];
+    const p = () => `$${params.length + 1}`;
+
+    if (q) {
+      conds.push(`s.title ILIKE ${p()}`); params.push(`%${q}%`);
+    }
+    if (rabbiId && exclude !== "rabbi") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_rabbi" x WHERE x.shiur_id = s.id AND x.rabbi_id = ${p()})`);
+      params.push(rabbiId);
+    }
+    if (seriesId && exclude !== "series") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_series" x WHERE x.shiur_id = s.id AND x.series_id = ${p()})`);
+      params.push(seriesId);
+    }
+    if (parashaId && exclude !== "parasha") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_parasha" x WHERE x.shiur_id = s.id AND x.parasha_id = ${p()})`);
+      params.push(parashaId);
+    }
+    if (moedId && exclude !== "moed") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_moadim" x WHERE x.shiur_id = s.id AND x.moed_id = ${p()})`);
+      params.push(moedId);
+    }
+    if (madorId && exclude !== "mador") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_mador" x WHERE x.shiur_id = s.id AND x.mador_id = ${p()})`);
+      params.push(madorId);
+    }
+    if (categoryId && exclude !== "category") {
+      conds.push(`EXISTS (SELECT 1 FROM "shiur_category" x WHERE x.shiur_id = s.id AND x.category_id = ${p()})`);
+      params.push(categoryId);
+    }
+
+    return { sql: conds.join(" AND "), params };
+  }
+
+  async function facet(
+    exclude: string,
+    nameTable: string,
+    joinTable: string,
+    joinCol: string,
+  ): Promise<FacetOption[]> {
+    const { sql: where, params } = buildWhere(exclude);
+    const sql = `
+      SELECT t.id::int, t.name, COUNT(DISTINCT s.id)::int AS count
+      FROM "${nameTable}" t
+      INNER JOIN "${joinTable}" j ON t.id = j.${joinCol}
+      INNER JOIN "shiurim" s ON j.shiur_id = s.id
+      WHERE ${where}
+      GROUP BY t.id, t.name
+      ORDER BY t.name
+    `;
+    const rows = await (prisma.$queryRawUnsafe(sql, ...params) as Promise<Array<{ id: bigint | number; name: string; count: bigint | number }>>);
+    return rows.map(r => ({ id: Number(r.id), name: r.name, count: Number(r.count) }));
+  }
+
+  const [rabbis, series, parashas, moadim, madorim, categories] = await Promise.all([
+    facet("rabbi",    "rabbis",     "shiur_rabbi",    "rabbi_id"),
+    facet("series",   "series",     "shiur_series",   "series_id"),
+    facet("parasha",  "parashas",   "shiur_parasha",  "parasha_id"),
+    facet("moed",     "moadim",     "shiur_moadim",   "moed_id"),
+    facet("mador",    "madorim",    "shiur_mador",    "mador_id"),
+    facet("category", "categories", "shiur_category", "category_id"),
+  ]);
 
   return { rabbis, series, parashas, moadim, madorim, categories };
 }
