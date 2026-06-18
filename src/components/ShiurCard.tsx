@@ -19,9 +19,7 @@ interface ShiurCardProps {
 export default function ShiurCard({ shiur }: ShiurCardProps) {
   const rabbi = shiur.rabbis[0]?.rabbi;
   const series = shiur.series[0]?.series;
-
-  // Always derive thumbnail from Vimeo ID for reliability
-  const thumbnail = shiur.vimeoId
+  const thumbUrl = shiur.vimeoId
     ? `https://vumbnail.com/${shiur.vimeoId}.jpg`
     : null;
 
@@ -31,50 +29,80 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
       className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-gray-800 overflow-hidden">
-        {thumbnail ? (
+      <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ paddingTop: "56.25%" }}>
+        {thumbUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={thumbnail}
-            alt={shiur.title}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            src={thumbUrl}
+            alt=""
+            style={{
+              position: "absolute",
+              top: 0, left: 0,
+              width: "100%", height: "100%",
+              objectFit: "cover",
+            }}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-600 text-3xl">🎓</div>
+          <div
+            style={{
+              position: "absolute", top: 0, left: 0,
+              width: "100%", height: "100%",
+              background: "#1e293b",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "2rem",
+            }}
+          >
+            🎓
+          </div>
         )}
+
+        {/* Duration badge */}
+        {shiur.lessonLength && (
+          <span
+            style={{
+              position: "absolute", bottom: 6, left: 6,
+              background: "rgba(0,0,0,0.75)",
+              color: "#fff", fontSize: "11px",
+              padding: "2px 6px", borderRadius: 4,
+              fontFamily: "monospace",
+            }}
+          >
+            {formatDuration(shiur.lessonLength)}
+          </span>
+        )}
+
         {/* Play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-          <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
-            <svg className="w-6 h-6 text-brand-500 mr-[-3px]" fill="currentColor" viewBox="0 0 24 24">
+        <div
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            position: "absolute", inset: 0,
+            background: "rgba(0,0,0,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            background: "rgba(255,255,255,0.9)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" fill="#0f3460" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
         </div>
-        {/* Duration badge */}
-        {shiur.lessonLength && (
-          <span className="absolute bottom-2 left-2 bg-black/75 text-white text-xs px-2 py-0.5 rounded-md font-mono">
-            {formatDuration(shiur.lessonLength)}
-          </span>
-        )}
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col gap-2 flex-1">
+      <div className="p-3 flex flex-col gap-1 flex-1">
         <h3 className="font-bold text-gray-900 line-clamp-2 text-sm leading-snug group-hover:text-blue-700 transition-colors">
           {shiur.title}
         </h3>
-
-        <div className="mt-auto flex flex-col gap-1">
+        <div className="mt-auto pt-1 flex flex-col gap-0.5">
           {rabbi && (
-            <span className="text-xs text-blue-700 font-medium">
-              {rabbi.name}
-            </span>
+            <span className="text-xs text-blue-700 font-medium truncate">{rabbi.name}</span>
           )}
           {series && (
-            <span className="text-xs text-gray-400 line-clamp-1">
-              {series.name}
-            </span>
+            <span className="text-xs text-gray-400 truncate">{series.name}</span>
           )}
           {shiur.hebrewDate && (
             <span className="text-xs text-gray-400">{shiur.hebrewDate}</span>
