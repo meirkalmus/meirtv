@@ -89,15 +89,21 @@ export default async function HomePage({ searchParams }: PageProps) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {shiurim.map(shiur => {
-              // Destructure out the Date object — don't pass it to the Client Component
               const { publishedAt, hebrewDate, ...shiurRest } = shiur;
-              // Prefer stored Hebrew date; compute from publishedAt when missing
-              const hebrewDateDisplay =
-                hebrewDate || toHebrewDate(publishedAt) || null;
+              const hebrewDateDisplay = hebrewDate || toHebrewDate(publishedAt) || null;
+              const gregorianDate = publishedAt
+                ? (() => {
+                    const d = new Date(publishedAt);
+                    const dd = d.getDate().toString().padStart(2, "0");
+                    const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+                    const yy = d.getFullYear().toString().slice(-2);
+                    return `${dd}/${mm}/${yy}`;
+                  })()
+                : null;
               return (
                 <ShiurCard
                   key={shiur.id}
-                  shiur={{ ...shiurRest, hebrewDate: hebrewDateDisplay, publishedAtFormatted: hebrewDateDisplay }}
+                  shiur={{ ...shiurRest, hebrewDate: hebrewDateDisplay, publishedAtFormatted: gregorianDate }}
                 />
               );
             })}
