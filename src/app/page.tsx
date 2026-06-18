@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { searchShiurim, getFilterOptions } from "@/lib/queries";
 import ShiurCard from "@/components/ShiurCard";
