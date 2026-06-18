@@ -23,7 +23,7 @@ export async function GET(
   try {
     const res = await fetch(
       `https://vimeo.com/api/v2/video/${vimeoId}.json`,
-      { next: { revalidate: 86400 } } // cache 24h
+      { cache: "force-cache" }
     );
     if (!res.ok) return new NextResponse(null, { status: 404 });
 

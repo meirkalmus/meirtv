@@ -42,7 +42,9 @@ export default async function HomePage({ searchParams }: PageProps) {
   const [{ shiurim, total, pages, page }, filterOptions] = await Promise.all([
     searchShiurim(filters),
     getFilterOptions(),
-  ]);
+  ]).catch((e: Error) => {
+    throw new Error(`Database error: ${e.message}`);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
