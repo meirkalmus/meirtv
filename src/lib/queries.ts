@@ -61,7 +61,7 @@ export async function searchShiurim(filters: ShiurFilters) {
         publishedAt: true,
         rabbis: {
           take: 1,
-          where: { isPrimary: true },
+          orderBy: { isPrimary: "desc" },
           select: { rabbi: { select: { name: true, slug: true } } },
         },
         series: {

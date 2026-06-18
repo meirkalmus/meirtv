@@ -88,7 +88,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {shiurim.map(shiur => (
-              <ShiurCard key={shiur.id} shiur={shiur as any} />
+              <ShiurCard
+                key={shiur.id}
+                shiur={{
+                  ...shiur,
+                  publishedAtFormatted: shiur.publishedAt
+                    ? new Date(shiur.publishedAt).toLocaleDateString("he-IL", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })
+                    : null,
+                }}
+              />
             ))}
           </div>
         )}

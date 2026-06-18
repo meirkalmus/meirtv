@@ -12,7 +12,7 @@ interface ShiurCardProps {
     vimeoThumbnail: string | null;
     lessonLength: number | null;
     hebrewDate: string | null;
-    publishedAt: Date | null;
+    publishedAtFormatted: string | null;
     rabbis: { rabbi: { name: string; slug: string } }[];
     series: { series: { name: string; slug: string } }[];
   };
@@ -21,9 +21,9 @@ interface ShiurCardProps {
 export default function ShiurCard({ shiur }: ShiurCardProps) {
   const rabbi = shiur.rabbis[0]?.rabbi;
   const series = shiur.series[0]?.series;
-  const thumbUrl = shiur.vimeoId
-    ? `/api/thumb/${shiur.vimeoId}`
-    : null;
+  // Use cached CDN URL directly (fast); only fall back to proxy API when not yet cached
+  const thumbUrl = shiur.vimeoThumbnail
+    || (shiur.vimeoId ? `/api/thumb/${shiur.vimeoId}` : null);
 
   return (
     <Link
@@ -108,9 +108,14 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
           {series && (
             <span className="text-xs text-gray-400 truncate">{series.name}</span>
           )}
-          {shiur.hebrewDate && (
-            <span className="text-xs text-gray-400">{shiur.hebrewDate}</span>
-          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {shiur.hebrewDate && (
+              <span className="text-xs text-gray-400">{shiur.hebrewDate}</span>
+            )}
+            {shiur.publishedAtFormatted && (
+              <span className="text-xs text-gray-300">{shiur.publishedAtFormatted}</span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
