@@ -20,11 +20,11 @@ interface ShiurCardProps {
 export default function ShiurCard({ shiur }: ShiurCardProps) {
   const rabbi = shiur.rabbis[0]?.rabbi;
   const series = shiur.series[0]?.series;
-  const thumbnail =
-    shiur.vimeoThumbnail ||
-    (shiur.vimeoId
-      ? `https://vumbnail.com/${shiur.vimeoId}.jpg`
-      : "/placeholder-shiur.jpg");
+
+  // Always derive thumbnail from Vimeo ID for reliability
+  const thumbnail = shiur.vimeoId
+    ? `https://vumbnail.com/${shiur.vimeoId}.jpg`
+    : null;
 
   return (
     <Link
@@ -32,15 +32,19 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
       className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-gray-100 overflow-hidden">
-        <Image
-          src={thumbnail}
-          alt={shiur.title}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          unoptimized={!!shiur.vimeoThumbnail}
-        />
+      <div className="relative aspect-video bg-gray-800 overflow-hidden">
+        {thumbnail ? (
+          <Image
+            src={thumbnail}
+            alt={shiur.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            unoptimized
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-600 text-3xl">🎓</div>
+        )}
         {/* Play overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
           <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">

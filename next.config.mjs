@@ -4,6 +4,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "i.vimeocdn.com" },
       { protocol: "https", hostname: "vimeo.com" },
+      { protocol: "https", hostname: "vumbnail.com" },
       { protocol: "https", hostname: "meirtv.com" },
       { protocol: "https", hostname: "**.cloudwaysapps.com" },
     ],

@@ -219,7 +219,7 @@ export default async function ShiurPage({ params }: PageProps) {
             </h2>
 
             {related.map(rel => {
-              const thumb = rel.vimeoThumbnail || (rel.vimeoId ? `https://vumbnail.com/${rel.vimeoId}.jpg` : null);
+              const thumb = rel.vimeoId ? `https://vumbnail.com/${rel.vimeoId}.jpg` : null;
               const relRabbi = rel.rabbis[0]?.rabbi;
               return (
                 <Link
