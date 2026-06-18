@@ -30,11 +30,25 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
     >
       {/* Thumbnail */}
       <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ paddingTop: "56.25%" }}>
-        {thumbUrl ? (
+        {/* Fallback shown when no vimeoId or image fails */}
+        <div
+          style={{
+            position: "absolute", top: 0, left: 0,
+            width: "100%", height: "100%",
+            background: "#1e293b",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "2rem",
+          }}
+        >
+          🎓
+        </div>
+
+        {thumbUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbUrl}
             alt=""
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
             style={{
               position: "absolute",
               top: 0, left: 0,
@@ -42,18 +56,6 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
               objectFit: "cover",
             }}
           />
-        ) : (
-          <div
-            style={{
-              position: "absolute", top: 0, left: 0,
-              width: "100%", height: "100%",
-              background: "#1e293b",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "2rem",
-            }}
-          >
-            🎓
-          </div>
         )}
 
         {/* Duration badge */}
