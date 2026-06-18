@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 interface Option { id: number; name: string; count?: number; }
 
@@ -15,43 +15,200 @@ interface SearchFiltersProps {
   total: number;
 }
 
-function Select({
+// ─── Searchable combobox dropdown ────────────────────────────────────────────
+function ComboSelect({
   name, label, options, value, onChange,
 }: {
   name: string; label: string; options: Option[];
   value: string; onChange: (name: string, val: string) => void;
 }) {
-  const selected = options.find(o => String(o.id) === value);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = options.find(o => String(o.id) === value) ?? null;
+
+  const filtered = search
+    ? options.filter(o => o.name.includes(search) || o.name.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [open]);
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    const onMouse = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) { setOpen(false); setSearch(""); }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setOpen(false); setSearch(""); }
+    };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey); };
+  }, []);
+
+  const choose = (val: string) => { onChange(name, val); setOpen(false); setSearch(""); };
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs text-gray-500 font-medium flex items-center justify-between">
-        <span>{label}</span>
-        {selected?.count !== undefined && (
-          <span className="text-blue-600 font-semibold text-xs">{selected.count.toLocaleString()}</span>
-        )}
-      </label>
-      <select
-        value={value}
-        onChange={e => onChange(name, e.target.value)}
-        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "left 12px center",
-        }}
+    <div ref={containerRef} className="relative flex flex-col gap-1">
+      <label className="text-xs text-gray-500 font-medium">{label}</label>
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-1 bg-white rounded-xl px-3 py-2.5 text-sm text-right border transition-all
+          ${selected ? "border-blue-400 text-gray-900 font-medium" : "border-gray-200 text-gray-500"}
+          ${open ? "ring-2 ring-blue-500 border-blue-400" : "hover:border-gray-300"}`}
       >
-        <option value="">הכל</option>
-        {options.map(o => (
-          <option key={o.id} value={String(o.id)}>
-            {o.name}{o.count !== undefined ? ` (${o.count.toLocaleString()})` : ""}
-          </option>
-        ))}
-      </select>
+        <span className="flex-1 truncate text-right leading-snug">
+          {selected ? selected.name : "הכל"}
+        </span>
+        {selected && selected.count !== undefined && (
+          <span className="flex-shrink-0 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">
+            {selected.count.toLocaleString()}
+          </span>
+        )}
+        <svg
+          className={`flex-shrink-0 w-3.5 h-3.5 text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+          {/* Search inside dropdown */}
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="חיפוש..."
+                className="w-full text-sm pr-3 pl-8 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+              />
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Options */}
+          <div className="max-h-56 overflow-y-auto overscroll-contain">
+            {/* "All" */}
+            <button
+              type="button"
+              onClick={() => choose("")}
+              className={`w-full text-right px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors
+                ${!value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-600"}`}
+            >
+              <span>הכל</span>
+            </button>
+
+            {filtered.length === 0 && (
+              <div className="px-3 py-5 text-sm text-gray-400 text-center">לא נמצאו תוצאות</div>
+            )}
+
+            {filtered.map(o => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => choose(String(o.id))}
+                className={`w-full text-right px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors
+                  ${String(o.id) === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"}`}
+              >
+                <span className="truncate flex-1">{o.name}</span>
+                {o.count !== undefined && (
+                  <span className={`flex-shrink-0 mr-2 text-xs ${String(o.id) === value ? "text-blue-500" : "text-gray-400"}`}>
+                    {o.count.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+// ─── Active filter chips ──────────────────────────────────────────────────────
+const FILTER_DEFS = [
+  { param: "rabbiId",    label: "רב" },
+  { param: "seriesId",   label: "סדרה" },
+  { param: "parashaId",  label: "פרשה" },
+  { param: "moedId",     label: "מועד" },
+  { param: "madorId",    label: "מדור" },
+  { param: "categoryId", label: "קטגוריה" },
+  { param: "q",          label: "חיפוש" },
+] as const;
+
+function ActiveFilters({
+  props, params, onRemove, onClearAll,
+}: {
+  props: SearchFiltersProps;
+  params: URLSearchParams;
+  onRemove: (param: string) => void;
+  onClearAll: () => void;
+}) {
+  const optionMap: Record<string, Option[]> = {
+    rabbiId: props.rabbis,
+    seriesId: props.series,
+    parashaId: props.parashas,
+    moedId: props.moadim,
+    madorId: props.madorim,
+    categoryId: props.categories,
+  };
+
+  const active = FILTER_DEFS.filter(f => params.has(f.param));
+  if (active.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+      <span className="text-xs text-gray-400 font-medium">פעיל:</span>
+      {active.map(({ param, label }) => {
+        const rawVal = params.get(param) || "";
+        const optList = optionMap[param];
+        const displayName = optList
+          ? (optList.find(o => String(o.id) === rawVal)?.name ?? rawVal)
+          : `"${rawVal}"`;
+        return (
+          <button
+            key={param}
+            type="button"
+            onClick={() => onRemove(param)}
+            className="group flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-red-50 hover:text-red-600 border border-blue-200 hover:border-red-200 rounded-full px-3 py-1 text-xs font-medium transition-all"
+          >
+            <span>{label}: {displayName}</span>
+            <svg className="w-3 h-3 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        );
+      })}
+
+      {active.length > 1 && (
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="text-xs text-gray-400 hover:text-red-600 underline underline-offset-2 transition-colors pr-1"
+        >
+          נקה הכל
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function SearchFilters(props: SearchFiltersProps) {
   const router = useRouter();
   const params = useSearchParams();
@@ -66,13 +223,15 @@ export default function SearchFilters(props: SearchFiltersProps) {
     startTransition(() => { router.push(`/?${next.toString()}`); });
   }, [params, router]);
 
-  const hasFilters = ["q", "rabbiId", "seriesId", "tagId", "parashaId", "moedId", "madorId", "categoryId"].some(k => params.has(k));
+  const removeFilter = useCallback((param: string) => update(param, ""), [update]);
+  const clearAll = useCallback(() => startTransition(() => router.push("/")), [router]);
 
   return (
     <div className={`transition-opacity duration-150 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
       {/* Search bar */}
       <div className="relative mb-4">
         <input
+          key={get("q")}
           type="text"
           placeholder="חיפוש שיעורים..."
           defaultValue={get("q")}
@@ -90,27 +249,21 @@ export default function SearchFilters(props: SearchFiltersProps) {
       {/* Filter grid */}
       <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Select name="rabbiId"    label="רב"       options={props.rabbis}     value={get("rabbiId")}    onChange={update} />
-          <Select name="seriesId"   label="סדרה"     options={props.series}     value={get("seriesId")}   onChange={update} />
-          <Select name="parashaId"  label="פרשה"     options={props.parashas}   value={get("parashaId")}  onChange={update} />
-          <Select name="moedId"     label="מועד"     options={props.moadim}     value={get("moedId")}     onChange={update} />
-          <Select name="madorId"    label="מדור"     options={props.madorim}    value={get("madorId")}    onChange={update} />
-          <Select name="categoryId" label="קטגוריה"  options={props.categories} value={get("categoryId")} onChange={update} />
+          <ComboSelect name="rabbiId"    label="רב"       options={props.rabbis}     value={get("rabbiId")}    onChange={update} />
+          <ComboSelect name="seriesId"   label="סדרה"     options={props.series}     value={get("seriesId")}   onChange={update} />
+          <ComboSelect name="parashaId"  label="פרשה"     options={props.parashas}   value={get("parashaId")}  onChange={update} />
+          <ComboSelect name="moedId"     label="מועד"     options={props.moadim}     value={get("moedId")}     onChange={update} />
+          <ComboSelect name="madorId"    label="מדור"     options={props.madorim}    value={get("madorId")}    onChange={update} />
+          <ComboSelect name="categoryId" label="קטגוריה"  options={props.categories} value={get("categoryId")} onChange={update} />
         </div>
 
-        {hasFilters && (
-          <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
-            <span className="text-sm text-gray-500">
-              נמצאו <strong className="text-gray-800">{props.total.toLocaleString("he-IL")}</strong> שיעורים
-            </span>
-            <button
-              onClick={() => { startTransition(() => router.push("/")); }}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              נקה סינון
-            </button>
-          </div>
-        )}
+        {/* Active filter chips */}
+        <ActiveFilters
+          props={props}
+          params={params}
+          onRemove={removeFilter}
+          onClearAll={clearAll}
+        />
       </div>
     </div>
   );
