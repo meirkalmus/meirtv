@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { formatDuration } from "@/lib/queries";
 
