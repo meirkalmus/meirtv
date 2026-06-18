@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { formatDuration } from "@/lib/queries";
 
 interface ShiurCardProps {
@@ -34,13 +33,12 @@ export default function ShiurCard({ shiur }: ShiurCardProps) {
       {/* Thumbnail */}
       <div className="relative aspect-video bg-gray-800 overflow-hidden">
         {thumbnail ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={thumbnail}
             alt={shiur.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            unoptimized
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-gray-600 text-3xl">🎓</div>

@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { getShiurBySlug, getRelatedShiurim, formatDuration } from "@/lib/queries";
 import type { Metadata } from "next";
 
@@ -228,8 +227,9 @@ export default async function ShiurPage({ params }: PageProps) {
                   className="flex gap-3 group bg-white rounded-xl p-3 border border-gray-100 hover:shadow-md transition-all"
                 >
                   {thumb && (
-                    <div className="relative w-28 flex-shrink-0 rounded-lg overflow-hidden aspect-video bg-gray-100">
-                      <Image src={thumb} alt={rel.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="112px" unoptimized />
+                    <div className="relative w-28 flex-shrink-0 rounded-lg overflow-hidden aspect-video bg-gray-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumb} alt={rel.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                       {rel.lessonLength && (
                         <span className="absolute bottom-1 left-1 bg-black/75 text-white text-xs px-1 rounded">
                           {formatDuration(rel.lessonLength)}
