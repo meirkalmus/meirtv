@@ -1,6 +1,8 @@
 import { prisma } from "./prisma";
 import { Prisma } from "@prisma/client";
 
+export type SortOption = "publishedAt_desc" | "publishedAt_asc" | "lessonLength_asc" | "lessonLength_desc";
+
 export interface ShiurFilters {
   q?: string;
   rabbiId?: number;
@@ -11,6 +13,7 @@ export interface ShiurFilters {
   madorId?: number;
   categoryId?: number;
   page?: number;
+  sort?: SortOption;
 }
 
 const PER_PAGE = 24;
@@ -69,7 +72,10 @@ export async function searchShiurim(filters: ShiurFilters) {
           select: { series: { select: { name: true, slug: true } } },
         },
       },
-      orderBy: [{ publishedAt: "desc" }],
+      orderBy: filters.sort === "publishedAt_asc"   ? [{ publishedAt: "asc" }]
+             : filters.sort === "lessonLength_asc"  ? [{ lessonLength: "asc" }]
+             : filters.sort === "lessonLength_desc" ? [{ lessonLength: "desc" }]
+             :                                        [{ publishedAt: "desc" }],
       skip,
       take: PER_PAGE,
     }),
@@ -202,6 +208,50 @@ export async function getRelatedShiurim(shiurId: number, rabbiId?: number) {
     },
     orderBy: { publishedAt: "desc" },
     take: 6,
+  });
+}
+
+export async function getAllRabbis() {
+  const rows = await prisma.$queryRaw<Array<{ id: bigint; name: string; slug: string; picture: string | null; count: bigint }>>`
+    SELECT r.id, r.name, r.slug, r.picture, COUNT(DISTINCT sr.shiur_id) AS count
+    FROM rabbis r
+    LEFT JOIN shiur_rabbi sr ON sr.rabbi_id = r.id
+    LEFT JOIN shiurim s ON s.id = sr.shiur_id AND s.status = 'publish'
+    GROUP BY r.id, r.name, r.slug, r.picture
+    HAVING COUNT(DISTINCT sr.shiur_id) > 0
+    ORDER BY COUNT(DISTINCT sr.shiur_id) DESC, r.name
+  `;
+  return rows.map(r => ({ id: Number(r.id), name: r.name, slug: r.slug, picture: r.picture, count: Number(r.count) }));
+}
+
+export async function getRabbiBySlug(slug: string) {
+  return prisma.rabbi.findUnique({ where: { slug } });
+}
+
+export async function getSeriesBySlug(slug: string) {
+  // Next.js passes URL params with uppercase hex (%D7%...) but WordPress slugs
+  // are stored lowercase (%d7%...). Lowercase normalizes the match.
+  return prisma.series.findFirst({
+    where: { slug: slug.toLowerCase() },
+    include: { parent: true },
+  });
+}
+
+export async function getSeriesShiurim(seriesId: number) {
+  return prisma.shiur.findMany({
+    where: { status: "publish", series: { some: { seriesId } } },
+    select: {
+      id: true, slug: true, title: true,
+      vimeoId: true, vimeoThumbnail: true,
+      lessonLength: true, hebrewDate: true, publishedAt: true,
+      episodeNumber: true,
+      rabbis: {
+        take: 1,
+        orderBy: { isPrimary: "desc" },
+        select: { rabbi: { select: { name: true, slug: true } } },
+      },
+    },
+    orderBy: [{ episodeNumber: "asc" }, { publishedAt: "asc" }],
   });
 }
 

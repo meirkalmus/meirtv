@@ -15,6 +15,13 @@ interface SearchFiltersProps {
   total: number;
 }
 
+const SORT_OPTIONS = [
+  { value: "publishedAt_desc",  label: "מהחדש לישן" },
+  { value: "publishedAt_asc",   label: "מהישן לחדש" },
+  { value: "lessonLength_asc",  label: "הקצר ביותר" },
+  { value: "lessonLength_desc", label: "הארוך ביותר" },
+];
+
 // ─── Searchable combobox dropdown ────────────────────────────────────────────
 function ComboSelect({
   name, label, options, value, onChange,
@@ -28,17 +35,14 @@ function ComboSelect({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selected = options.find(o => String(o.id) === value) ?? null;
-
   const filtered = search
     ? options.filter(o => o.name.includes(search) || o.name.toLowerCase().includes(search.toLowerCase()))
     : options;
 
-  // Focus search input when dropdown opens
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 0);
   }, [open]);
 
-  // Close on outside click or Escape
   useEffect(() => {
     const onMouse = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) { setOpen(false); setSearch(""); }
@@ -56,8 +60,6 @@ function ComboSelect({
   return (
     <div ref={containerRef} className="relative flex flex-col gap-1">
       <label className="text-xs text-gray-500 font-medium">{label}</label>
-
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -73,18 +75,14 @@ function ComboSelect({
             {selected.count.toLocaleString()}
           </span>
         )}
-        <svg
-          className={`flex-shrink-0 w-3.5 h-3.5 text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
+        <svg className={`flex-shrink-0 w-3.5 h-3.5 text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
-      {/* Dropdown panel */}
       {open && (
         <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-          {/* Search inside dropdown */}
           <div className="p-2 border-b border-gray-100">
             <div className="relative">
               <input
@@ -100,31 +98,19 @@ function ComboSelect({
               </svg>
             </div>
           </div>
-
-          {/* Options */}
           <div className="max-h-56 overflow-y-auto overscroll-contain">
-            {/* "All" */}
-            <button
-              type="button"
-              onClick={() => choose("")}
+            <button type="button" onClick={() => choose("")}
               className={`w-full text-right px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors
-                ${!value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-600"}`}
-            >
+                ${!value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-600"}`}>
               <span>הכל</span>
             </button>
-
             {filtered.length === 0 && (
               <div className="px-3 py-5 text-sm text-gray-400 text-center">לא נמצאו תוצאות</div>
             )}
-
             {filtered.map(o => (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => choose(String(o.id))}
+              <button key={o.id} type="button" onClick={() => choose(String(o.id))}
                 className={`w-full text-right px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors
-                  ${String(o.id) === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"}`}
-              >
+                  ${String(o.id) === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"}`}>
                 <span className="truncate flex-1">{o.name}</span>
                 {o.count !== undefined && (
                   <span className={`flex-shrink-0 mr-2 text-xs ${String(o.id) === value ? "text-blue-500" : "text-gray-400"}`}>
@@ -160,14 +146,10 @@ function ActiveFilters({
   onClearAll: () => void;
 }) {
   const optionMap: Record<string, Option[]> = {
-    rabbiId: props.rabbis,
-    seriesId: props.series,
-    parashaId: props.parashas,
-    moedId: props.moadim,
-    madorId: props.madorim,
-    categoryId: props.categories,
+    rabbiId: props.rabbis, seriesId: props.series,
+    parashaId: props.parashas, moedId: props.moadim,
+    madorId: props.madorim, categoryId: props.categories,
   };
-
   const active = FILTER_DEFS.filter(f => params.has(f.param));
   if (active.length === 0) return null;
 
@@ -181,12 +163,8 @@ function ActiveFilters({
           ? (optList.find(o => String(o.id) === rawVal)?.name ?? rawVal)
           : `"${rawVal}"`;
         return (
-          <button
-            key={param}
-            type="button"
-            onClick={() => onRemove(param)}
-            className="group flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-red-50 hover:text-red-600 border border-blue-200 hover:border-red-200 rounded-full px-3 py-1 text-xs font-medium transition-all"
-          >
+          <button key={param} type="button" onClick={() => onRemove(param)}
+            className="group flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-red-50 hover:text-red-600 border border-blue-200 hover:border-red-200 rounded-full px-3 py-1 text-xs font-medium transition-all">
             <span>{label}: {displayName}</span>
             <svg className="w-3 h-3 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -194,13 +172,9 @@ function ActiveFilters({
           </button>
         );
       })}
-
       {active.length > 1 && (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="text-xs text-gray-400 hover:text-red-600 underline underline-offset-2 transition-colors pr-1"
-        >
+        <button type="button" onClick={onClearAll}
+          className="text-xs text-gray-400 hover:text-red-600 underline underline-offset-2 transition-colors pr-1">
           נקה הכל
         </button>
       )}
@@ -213,6 +187,7 @@ export default function SearchFilters(props: SearchFiltersProps) {
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const get = (key: string) => params.get(key) || "";
 
@@ -226,17 +201,36 @@ export default function SearchFilters(props: SearchFiltersProps) {
   const removeFilter = useCallback((param: string) => update(param, ""), [update]);
   const clearAll = useCallback(() => startTransition(() => router.push("/")), [router]);
 
+  // Controlled search input with debounce
+  const [searchValue, setSearchValue] = useState(get("q"));
+
+  // Reset input when URL q param changes externally (e.g. clear all)
+  const qFromUrl = get("q");
+  useEffect(() => { setSearchValue(qFromUrl); }, [qFromUrl]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchValue(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => update("q", val), 400);
+  };
+
+  const currentSort = get("sort") || "publishedAt_desc";
+
   return (
     <div className={`transition-opacity duration-150 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
       {/* Search bar */}
       <div className="relative mb-4">
         <input
-          key={get("q")}
           type="text"
-          placeholder="חיפוש שיעורים..."
-          defaultValue={get("q")}
-          onKeyDown={e => { if (e.key === "Enter") update("q", (e.target as HTMLInputElement).value); }}
-          onBlur={e => { if (e.target.value !== get("q")) update("q", e.target.value); }}
+          placeholder="חיפוש שיעורים, רבנים, סדרות..."
+          value={searchValue}
+          onChange={e => handleSearchChange(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") {
+              clearTimeout(debounceRef.current);
+              update("q", searchValue);
+            }
+          }}
           className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm pr-12"
         />
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -256,14 +250,25 @@ export default function SearchFilters(props: SearchFiltersProps) {
           <ComboSelect name="madorId"    label="מדור"     options={props.madorim}    value={get("madorId")}    onChange={update} />
           <ComboSelect name="categoryId" label="קטגוריה"  options={props.categories} value={get("categoryId")} onChange={update} />
         </div>
+        <ActiveFilters props={props} params={params} onRemove={removeFilter} onClearAll={clearAll} />
+      </div>
 
-        {/* Active filter chips */}
-        <ActiveFilters
-          props={props}
-          params={params}
-          onRemove={removeFilter}
-          onClearAll={clearAll}
-        />
+      {/* Results count + sort */}
+      <div className="mt-4 mb-4 flex items-center justify-between gap-4">
+        <p className="text-sm text-gray-500">
+          {props.total.toLocaleString("he-IL")}{" "}
+          {params.has("q") || params.has("rabbiId") || params.has("seriesId") || params.has("parashaId") || params.has("moedId") || params.has("madorId") || params.has("categoryId")
+            ? "תוצאות" : "שיעורים"}
+        </p>
+        <select
+          value={currentSort}
+          onChange={e => update("sort", e.target.value === "publishedAt_desc" ? "" : e.target.value)}
+          className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          {SORT_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
     </div>
   );

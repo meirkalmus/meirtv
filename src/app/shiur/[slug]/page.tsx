@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getShiurBySlug, getRelatedShiurim, formatDuration } from "@/lib/queries";
 import { toHebrewDate } from "@/lib/hebrew-date";
+import Header from "@/components/Header";
 import type { Metadata } from "next";
 
 interface PageProps { params: { slug: string }; }
@@ -62,19 +63,7 @@ export default async function ShiurPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header */}
-      <header className="bg-gradient-to-l from-[#1a1a2e] to-[#0f3460] text-white">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" className="text-blue-200 hover:text-white transition-colors text-sm flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            חזרה לחיפוש
-          </Link>
-          <span className="text-blue-300">|</span>
-          <Link href="/" className="text-white font-bold text-lg">ערוץ מאיר</Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -117,7 +106,7 @@ export default async function ShiurPage({ params }: PageProps) {
                   {shiur.rabbis.map(({ rabbi, isPrimary }) => (
                     <Link
                       key={rabbi.id}
-                      href={`/?rabbiId=${rabbi.id}`}
+                      href={`/rabbi/${rabbi.slug}`}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                         isPrimary
                           ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -186,7 +175,7 @@ export default async function ShiurPage({ params }: PageProps) {
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">סדרה</h3>
                   <div className="flex flex-wrap gap-2">
                     {shiur.series.map(({ series }) => (
-                      <Link key={series.id} href={`/?seriesId=${series.id}`}
+                      <Link key={series.id} href={`/series/${series.slug}`}
                         className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm hover:bg-purple-100 transition-colors">
                         {series.name}
                       </Link>
@@ -278,7 +267,7 @@ export default async function ShiurPage({ params }: PageProps) {
 
             {primaryRabbi && (
               <Link
-                href={`/?rabbiId=${primaryRabbi.id}`}
+                href={`/rabbi/${primaryRabbi.slug}`}
                 className="text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-2 border border-blue-100 rounded-xl hover:bg-blue-50 transition-colors"
               >
                 כל השיעורים של {primaryRabbi.name} ←
